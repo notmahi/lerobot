@@ -22,6 +22,7 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
+import einops
 import numpy as np
 import torch
 import tqdm
@@ -75,6 +76,58 @@ def process_actions(actions: np.ndarray) -> np.ndarray:
     action_2 = np.concatenate([translation_2, rotation_2_axis_angle, gripper_2], axis=-1)
     actions = np.concatenate([action_1, action_2], axis=-1)
     return actions
+
+
+def calculate_relative_actions(processed_actions: np.ndarray) -> np.ndarray:
+    action_1 = processed_actions[:, :7]
+    action_2 = processed_actions[:, 7:]
+    translation_1 = action_1[:, 0:3]
+    rotation_1 = action_1[:, 3:6]
+    gripper_1 = action_1[:, 6:7]
+    translation_2 = action_2[:, 0:3]
+    rotation_2 = action_2[:, 3:6]
+    gripper_2 = action_2[:, 6:7]
+
+    def convert_to_4x4(rotation, translation):
+        r = R.from_rotvec(rotation).as_matrix()
+        transform_matrix = np.concatenate([r, translation[..., None]], axis=-1)
+        last_row = einops.repeat(np.array([0, 0, 0, 1]), "x -> b 1 x", b=transform_matrix.shape[0])
+        return np.concatenate([transform_matrix, last_row], axis=1)
+
+    def calculate_relative_transform(transform_1, transform_2):
+        return np.linalg.inv(transform_1) @ transform_2
+
+    def calculate_relative_transform_sequence(transform_seq):
+        transform_prev, transform_next = transform_seq[:-1], transform_seq[1:]
+        relative_transforms = calculate_relative_transform(transform_prev, transform_next)
+        return np.concatenate([np.eye(4)[None, ...], relative_transforms], axis=0)
+
+    def convert_to_translation_rotation(transform):
+        translation = transform[:, :3, 3]
+        rotation = R.from_matrix(transform[:, :3, :3]).as_rotvec()
+        return translation, rotation
+
+    transform_1 = convert_to_4x4(rotation_1, translation_1)
+    transform_2 = convert_to_4x4(rotation_2, translation_2)
+
+    relative_transform_1 = calculate_relative_transform_sequence(transform_1)
+    relative_transform_2 = calculate_relative_transform_sequence(transform_2)
+
+    relative_translation_1, relative_rotation_1 = convert_to_translation_rotation(relative_transform_1)
+    relative_translation_2, relative_rotation_2 = convert_to_translation_rotation(relative_transform_2)
+
+    relative_actions = np.concatenate(
+        [
+            relative_translation_1,
+            relative_rotation_1,
+            gripper_1,
+            relative_translation_2,
+            relative_rotation_2,
+            gripper_2,
+        ],
+        axis=-1,
+    )
+    return relative_actions
 
 
 def check_format(raw_dir: Path) -> bool:
@@ -173,6 +226,8 @@ def load_from_raw(
             ]
 
         ep_dict["action"] = torch.from_numpy(actions)
+        ep_dict["action_6drot"] = torch.from_numpy(actions_before_processing)
+        ep_dict["action_relative"] = torch.from_numpy(calculate_relative_actions(actions))
         ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
         ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
         ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
@@ -210,6 +265,12 @@ def to_hf_dataset(data_dict, video: bool) -> Dataset:
     )
     features["action"] = Sequence(
         length=data_dict["action"].shape[1], feature=Value(dtype="float32", id=None)
+    )
+    features["action_6drot"] = Sequence(
+        length=data_dict["action_6drot"].shape[1], feature=Value(dtype="float32", id=None)
+    )
+    features["action_relative"] = Sequence(
+        length=data_dict["action_relative"].shape[1], feature=Value(dtype="float32", id=None)
     )
     features["episode_index"] = Value(dtype="int64", id=None)
     features["frame_index"] = Value(dtype="int64", id=None)
