@@ -71,6 +71,11 @@ def get_policy_and_config_classes(name: str) -> tuple[Policy, object]:
         from lerobot.common.policies.mlpbc.modeling_mlpbc import MLPBCPolicy
 
         return MLPBCPolicy, MLPBCConfig
+    elif name == "nn":
+        from lerobot.common.policies.nn.configuration_nn import NNPolicyConfig
+        from lerobot.common.policies.nn.modeling_nn import NNPolicy
+
+        return NNPolicy, NNPolicyConfig
     else:
         raise NotImplementedError(f"Policy with name {name} is not implemented.")
 
