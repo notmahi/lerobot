@@ -35,6 +35,7 @@ class NNPolicyConfig:
     distance_metric: str = "euclidean"
     database_size: int = 10_000
     topk: int = 5
+    weights: list[list[float]] = field(default_factory=lambda: [[10.0, 10.0, 1.0, 1.0]])
 
     # Possible modes: weighted_avg, sample
     action_sample_mode: str = "sample"

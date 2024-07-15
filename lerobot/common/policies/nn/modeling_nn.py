@@ -1,3 +1,4 @@
+import dataclasses
 from collections import deque
 from typing import Tuple
 
@@ -108,6 +109,11 @@ class NNDatabase(torch.nn.Module):
         super().__init__()
         self.config = config
         self.observation_size = config.input_shapes["observation.state"]
+        if dataclasses.asdict(self.config).get("weights"):
+            weights = torch.tensor(config.weights, dtype=torch.float32)
+        else:
+            weights = torch.ones(1, np.prod(self.observation_size), dtype=torch.float32)
+        self.register_buffer("_weights", weights)
         self.action_size = config.output_shapes["action"]
         self.register_buffer(
             "database",
@@ -189,8 +195,12 @@ class NNDatabase(torch.nn.Module):
         batch_size = batch["observation.state"].shape[0]
         observations = batch["observation.state"].view(batch_size, -1)
 
+        # Now rescale by weight
+        observations = observations * self._weights
+        occupied_database = self.database[self.database_occupied] * self._weights
+
         # Compute the distance between the observations and the database.
-        distances = torch.cdist(observations, self.database[self.database_occupied], p=2)
+        distances = torch.cdist(observations, occupied_database, p=2)
 
         # Find the topk nearest neighbors.
         values, indices = torch.topk(distances, topk, largest=False)
