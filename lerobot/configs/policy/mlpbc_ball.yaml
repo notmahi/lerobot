@@ -5,7 +5,8 @@
 #       https://github.com/huggingface/lerobot/pull/134 for more details.
 
 seed: 100000
-dataset_repo_id: notmahi/tutorial-ball
+dataset_repo_id: notmahi/tutorial-ball-top-20
+dataset_version: main
 
 
 training:
