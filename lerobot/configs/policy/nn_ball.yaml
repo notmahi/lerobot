@@ -10,9 +10,9 @@ dataset_version: main
 
 
 training:
-  offline_steps: 80000
+  offline_steps: 1796
   online_steps: 0
-  eval_freq: 5000
+  eval_freq: 0
   save_freq: 5000
   log_freq: 250
   save_checkpoint: true
@@ -25,7 +25,8 @@ training:
   online_steps_between_rollouts: 1
 
   delta_timestamps:
-    action: "[i / ${fps} for i in range(${policy.chunk_size})]"
+    action: "[i / ${fps} for i in range(${policy.action_chunk_size})]"
+    observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
 
 eval:
   n_episodes: 50
@@ -33,12 +34,11 @@ eval:
 
 # See `configuration_act.py` for more details.
 policy:
-  name: mlpbc
+  name: nn
 
   # Input / output structure.
   n_obs_steps: 1
-  chunk_size: 1 # chunk_size
-  n_action_steps: 1
+  action_chunk_size: 1 # chunk_size
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
@@ -48,22 +48,13 @@ policy:
 
   # Normalization / Unnormalization
   input_normalization_modes:
-    observation.state: min_max
+    observation.state: mean_std
   output_normalization_modes:
-    action: min_max
+    action: mean_std
+  database_size: 230000
+  topk: 5
 
-  # Architecture.
-  use_l1_loss: false
-  num_hidden_layers: 3
-  # Vision backbone.
-  vision_backbone: resnet18
-  pretrained_backbone_weights: ResNet18_Weights.IMAGENET1K_V1
-  replace_final_stride_with_dilation: false
-  # Transformer layers.
-  dim_model: 256
-
-  # Inference.
-  temporal_ensemble_momentum: null
-
-  # Training and loss computation.
-  dropout: 0.1
+  # Possible modes: weighted_avg, sample
+  action_sample_mode: sample
+  distance_metric: 2
+  weights: [[10.0, 10.0, 1.0, 1.0]]

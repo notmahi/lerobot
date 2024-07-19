@@ -3,12 +3,13 @@
 # Defaults for training for the PushT dataset.
 
 seed: 100000
-dataset_repo_id: notmahi/tutorial-ball
+dataset_repo_id: notmahi/tutorial-ball-top-20
+dataset_version: main
 
 
 training:
   # 20k for VQ-VAE training, 80k for minGPT training
-  offline_steps: 100000
+  offline_steps: 80000
   online_steps: 0
   eval_freq: 5000
   save_freq: 5000
@@ -78,11 +79,11 @@ policy:
   gpt_output_dim: 128
   gpt_n_layer: 4
   gpt_n_head: 4
-  gpt_hidden_dim: 256
+  gpt_hidden_dim: 120
   dropout: 0.1
   mlp_hidden_dim: 128
   offset_loss_weight: 100.
   primary_code_loss_weight: 5.0
   secondary_code_loss_weight: 0.5
-  bet_softmax_temperature: 0.1
+  bet_softmax_temperature: 1.0
   sequentially_select: true

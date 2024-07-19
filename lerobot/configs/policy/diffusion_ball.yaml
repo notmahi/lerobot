@@ -1,7 +1,8 @@
 # @package _global_
 
 seed: 100000
-dataset_repo_id: notmahi/tutorial-ball
+dataset_repo_id: notmahi/tutorial-ball-top-20
+dataset_version: main
 
 training:
   offline_steps: 80000
