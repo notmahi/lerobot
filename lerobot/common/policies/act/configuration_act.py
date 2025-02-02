@@ -15,9 +15,14 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 
+from lerobot.common.optim.optimizers import AdamWConfig
+from lerobot.configs.policies import PreTrainedConfig
+from lerobot.configs.types import NormalizationMode
 
+
+@PreTrainedConfig.register_subclass("act")
 @dataclass
-class ACTConfig:
+class ACTConfig(PreTrainedConfig):
     """Configuration class for the Action Chunking Transformers policy.
 
     Defaults are configured for training on bimanual Aloha tasks like "insertion" or "transfer".
@@ -26,7 +31,10 @@ class ACTConfig:
     Those are: `input_shapes` and 'output_shapes`.
 
     Notes on the inputs and outputs:
-        - At least one key starting with "observation.image is required as an input.
+        - Either:
+            - At least one key starting with "observation.image is required as an input.
+              AND/OR
+            - The key "observation.environment_state" is required as input.
         - If there are multiple keys beginning with "observation.images." they are treated as multiple camera
           views. Right now we only support all images having the same shape.
         - May optionally work without an "observation.state" key for the proprioceptive robot state.
@@ -73,12 +81,10 @@ class ACTConfig:
             documentation in the policy class).
         latent_dim: The VAE's latent dimension.
         n_vae_encoder_layers: The number of transformer layers to use for the VAE's encoder.
-        temporal_ensemble_momentum: Exponential moving average (EMA) momentum parameter (α) for ensembling
-            actions for a given time step over multiple policy invocations. Updates are calculated as:
-            x⁻ₙ = αx⁻ₙ₋₁ + (1-α)xₙ. Note that the ACT paper and original ACT code describes a different
-            parameter here: they refer to a weighting scheme wᵢ = exp(-m⋅i) and set m = 0.01. With our
-            formulation, this is equivalent to α = exp(-0.01) ≈ 0.99. When this parameter is provided, we
-            require `n_action_steps == 1` (since we need to query the policy every step anyway).
+        temporal_ensemble_coeff: Coefficient for the exponential weighting scheme to apply for temporal
+            ensembling. Defaults to None which means temporal ensembling is not used. `n_action_steps` must be
+            1 when using this feature, as inference needs to happen at every step to form an ensemble. For
+            more information on how ensembling works, please see `ACTTemporalEnsembler`.
         dropout: Dropout to use in the transformer layers (see code for details).
         kl_weight: The weight to use for the KL-divergence component of the loss if the variational objective
             is enabled. Loss is then calculated as: `reconstruction_loss + kl_weight * kld_loss`.
@@ -89,28 +95,11 @@ class ACTConfig:
     chunk_size: int = 100
     n_action_steps: int = 100
 
-    input_shapes: dict[str, list[int]] = field(
+    normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
-            "observation.images.top": [3, 480, 640],
-            "observation.state": [14],
-        }
-    )
-    output_shapes: dict[str, list[int]] = field(
-        default_factory=lambda: {
-            "action": [14],
-        }
-    )
-
-    # Normalization / Unnormalization
-    input_normalization_modes: dict[str, str] = field(
-        default_factory=lambda: {
-            "observation.images.top": "mean_std",
-            "observation.state": "mean_std",
-        }
-    )
-    output_normalization_modes: dict[str, str] = field(
-        default_factory=lambda: {
-            "action": "mean_std",
+            "VISUAL": NormalizationMode.MEAN_STD,
+            "STATE": NormalizationMode.MEAN_STD,
+            "ACTION": NormalizationMode.MEAN_STD,
         }
     )
 
@@ -136,19 +125,27 @@ class ACTConfig:
     n_vae_encoder_layers: int = 4
 
     # Inference.
-    temporal_ensemble_momentum: float | None = None
+    # Note: the value used in ACT when temporal ensembling is enabled is 0.01.
+    temporal_ensemble_coeff: float | None = None
 
     # Training and loss computation.
     dropout: float = 0.1
     kl_weight: float = 10.0
 
+    # Training preset
+    optimizer_lr: float = 1e-5
+    optimizer_weight_decay: float = 1e-4
+    optimizer_lr_backbone: float = 1e-5
+
     def __post_init__(self):
+        super().__post_init__()
+
         """Input validation (not exhaustive)."""
         if not self.vision_backbone.startswith("resnet"):
             raise ValueError(
                 f"`vision_backbone` must be one of the ResNet variants. Got {self.vision_backbone}."
             )
-        if self.temporal_ensemble_momentum is not None and self.n_action_steps > 1:
+        if self.temporal_ensemble_coeff is not None and self.n_action_steps > 1:
             raise NotImplementedError(
                 "`n_action_steps` must be 1 when using temporal ensembling. This is "
                 "because the policy needs to be queried every step to compute the ensembled action."
@@ -162,3 +159,28 @@ class ACTConfig:
             raise ValueError(
                 f"Multiple observation steps not handled yet. Got `nobs_steps={self.n_obs_steps}`"
             )
+
+    def get_optimizer_preset(self) -> AdamWConfig:
+        return AdamWConfig(
+            lr=self.optimizer_lr,
+            weight_decay=self.optimizer_weight_decay,
+        )
+
+    def get_scheduler_preset(self) -> None:
+        return None
+
+    def validate_features(self) -> None:
+        if not self.image_features and not self.env_state_feature:
+            raise ValueError("You must provide at least one image or the environment state among the inputs.")
+
+    @property
+    def observation_delta_indices(self) -> None:
+        return None
+
+    @property
+    def action_delta_indices(self) -> list:
+        return list(range(self.chunk_size))
+
+    @property
+    def reward_delta_indices(self) -> None:
+        return None

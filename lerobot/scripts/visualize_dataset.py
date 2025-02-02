@@ -15,14 +15,14 @@
 # limitations under the License.
 """ Visualize data of **all** frames of any episode of a dataset of type LeRobotDataset.
 
-Note: The last frame of the episode doesnt always correspond to a final state.
+Note: The last frame of the episode doesn't always correspond to a final state.
 That's because our datasets are composed of transition from state to state up to
 the antepenultimate state associated to the ultimate action to arrive in the final state.
 However, there might not be a transition from a final state to another state.
 
 Note: This script aims to visualize the data used to train the neural networks.
 ~What you see is what you get~. When visualizing image modality, it is often expected to observe
-lossly compression artifacts since these images have been decoded from compressed mp4 videos to
+lossy compression artifacts since these images have been decoded from compressed mp4 videos to
 save disk space. The compression factor applied has been tuned to not affect success rate.
 
 Examples:
@@ -100,7 +100,7 @@ def to_hwc_uint8_numpy(chw_float32_torch: torch.Tensor) -> np.ndarray:
 
 
 def visualize_dataset(
-    repo_id: str,
+    dataset: LeRobotDataset,
     episode_index: int,
     batch_size: int = 32,
     num_workers: int = 0,
@@ -109,15 +109,13 @@ def visualize_dataset(
     ws_port: int = 9087,
     save: bool = False,
     output_dir: Path | None = None,
-    root: Path | None = None,
 ) -> Path | None:
     if save:
         assert (
             output_dir is not None
         ), "Set an output directory where to write .rrd files with `--output-dir path/to/directory`."
 
-    logging.info("Loading dataset")
-    dataset = LeRobotDataset(repo_id, root=root)
+    repo_id = dataset.repo_id
 
     logging.info("Loading dataloader")
     episode_sampler = EpisodeSampler(dataset, episode_index)
@@ -153,7 +151,7 @@ def visualize_dataset(
             rr.set_time_seconds("timestamp", batch["timestamp"][i].item())
 
             # display each camera image
-            for key in dataset.camera_keys:
+            for key in dataset.meta.camera_keys:
                 # TODO(rcadene): add `.compress()`? is it lossless?
                 rr.log(key, rr.Image(to_hwc_uint8_numpy(batch[key][i])))
 
@@ -201,13 +199,31 @@ def main():
         "--repo-id",
         type=str,
         required=True,
-        help="Name of hugging face repositery containing a LeRobotDataset dataset (e.g. `lerobot/pusht`).",
+        help="Name of hugging face repository containing a LeRobotDataset dataset (e.g. `lerobot/pusht`).",
     )
     parser.add_argument(
         "--episode-index",
         type=int,
         required=True,
         help="Episode to visualize.",
+    )
+    parser.add_argument(
+        "--local-files-only",
+        type=int,
+        default=0,
+        help="Use local files only. By default, this script will try to fetch the dataset from the hub if it exists.",
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="Root directory for the dataset stored locally (e.g. `--root data`). By default, the dataset will be loaded from hugging face cache folder, or downloaded from the hub if available.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Directory path to write a .rrd file when `--save 1` is set.",
     )
     parser.add_argument(
         "--batch-size",
@@ -254,20 +270,17 @@ def main():
             "Visualize the data by running `rerun path/to/file.rrd` on your local machine."
         ),
     )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        help="Directory path to write a .rrd file when `--save 1` is set.",
-    )
-
-    parser.add_argument(
-        "--root",
-        type=str,
-        help="Root directory for a dataset stored on a local machine.",
-    )
 
     args = parser.parse_args()
-    visualize_dataset(**vars(args))
+    kwargs = vars(args)
+    repo_id = kwargs.pop("repo_id")
+    root = kwargs.pop("root")
+    local_files_only = kwargs.pop("local_files_only")
+
+    logging.info("Loading dataset")
+    dataset = LeRobotDataset(repo_id, root=root, local_files_only=local_files_only)
+
+    visualize_dataset(dataset, **vars(args))
 
 
 if __name__ == "__main__":

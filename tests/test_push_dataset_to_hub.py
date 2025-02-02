@@ -5,7 +5,7 @@ we skip them for now in our CI.
 
 Example to run backward compatiblity tests locally:
 ```
-DATA_DIR=tests/data python -m pytest --run-skipped tests/test_push_dataset_to_hub.py::test_push_dataset_to_hub_pusht_backward_compatibility
+python -m pytest --run-skipped tests/test_push_dataset_to_hub.py::test_push_dataset_to_hub_pusht_backward_compatibility
 ```
 """
 
@@ -211,7 +211,7 @@ def _mock_download_raw_dora(raw_dir, num_frames=6, num_episodes=3, fps=30):
 
         fname = f"{cam_key}_episode_{ep_idx:06d}.mp4"
         video_path = raw_dir / "videos" / fname
-        encode_video_frames(tmp_imgs_dir, video_path, fps)
+        encode_video_frames(tmp_imgs_dir, video_path, fps, vcodec="libx264")
 
 
 def _mock_download_raw(raw_dir, repo_id):
@@ -229,11 +229,13 @@ def _mock_download_raw(raw_dir, repo_id):
         raise ValueError(repo_id)
 
 
+@pytest.mark.skip("push_dataset_to_hub is deprecated")
 def test_push_dataset_to_hub_invalid_repo_id(tmpdir):
     with pytest.raises(ValueError):
         push_dataset_to_hub(Path(tmpdir), "raw_format", "invalid_repo_id")
 
 
+@pytest.mark.skip("push_dataset_to_hub is deprecated")
 def test_push_dataset_to_hub_out_dir_force_override_false(tmpdir):
     tmpdir = Path(tmpdir)
     out_dir = tmpdir / "out"
@@ -250,18 +252,20 @@ def test_push_dataset_to_hub_out_dir_force_override_false(tmpdir):
         )
 
 
+@pytest.mark.skip("push_dataset_to_hub is deprecated")
 @pytest.mark.parametrize(
-    "required_packages, raw_format, repo_id",
+    "required_packages, raw_format, repo_id, make_test_data",
     [
-        (["gym-pusht"], "pusht_zarr", "lerobot/pusht"),
-        (None, "xarm_pkl", "lerobot/xarm_lift_medium"),
-        (None, "aloha_hdf5", "lerobot/aloha_sim_insertion_scripted"),
-        (["imagecodecs"], "umi_zarr", "lerobot/umi_cup_in_the_wild"),
-        (None, "dora_parquet", "cadene/wrist_gripper"),
+        (["gym_pusht"], "pusht_zarr", "lerobot/pusht", False),
+        (["gym_pusht"], "pusht_zarr", "lerobot/pusht", True),
+        (None, "xarm_pkl", "lerobot/xarm_lift_medium", False),
+        (None, "aloha_hdf5", "lerobot/aloha_sim_insertion_scripted", False),
+        (["imagecodecs"], "umi_zarr", "lerobot/umi_cup_in_the_wild", False),
+        (None, "dora_parquet", "cadene/wrist_gripper", False),
     ],
 )
 @require_package_arg
-def test_push_dataset_to_hub_format(required_packages, tmpdir, raw_format, repo_id):
+def test_push_dataset_to_hub_format(required_packages, tmpdir, raw_format, repo_id, make_test_data):
     num_episodes = 3
     tmpdir = Path(tmpdir)
 
@@ -278,6 +282,8 @@ def test_push_dataset_to_hub_format(required_packages, tmpdir, raw_format, repo_
         local_dir=local_dir,
         force_override=False,
         cache_dir=tmpdir / "cache",
+        tests_data_dir=tmpdir / "tests/data" if make_test_data else None,
+        encoding={"vcodec": "libx264"},
     )
 
     # minimal generic tests on the local directory containing LeRobotDataset
@@ -299,7 +305,22 @@ def test_push_dataset_to_hub_format(required_packages, tmpdir, raw_format, repo_
     for cam_key in lerobot_dataset.camera_keys:
         assert cam_key in item
 
+    if make_test_data:
+        # Check that only the first episode is selected.
+        test_dataset = LeRobotDataset(repo_id=repo_id, root=tmpdir / "tests/data")
+        num_frames = sum(
+            i == lerobot_dataset.hf_dataset["episode_index"][0]
+            for i in lerobot_dataset.hf_dataset["episode_index"]
+        ).item()
+        assert (
+            test_dataset.hf_dataset["episode_index"]
+            == lerobot_dataset.hf_dataset["episode_index"][:num_frames]
+        )
+        for k in ["from", "to"]:
+            assert torch.equal(test_dataset.episode_data_index[k], lerobot_dataset.episode_data_index[k][:1])
 
+
+@pytest.mark.skip("push_dataset_to_hub is deprecated")
 @pytest.mark.parametrize(
     "raw_format, repo_id",
     [
@@ -310,9 +331,6 @@ def test_push_dataset_to_hub_format(required_packages, tmpdir, raw_format, repo_
         ("umi_zarr", "lerobot/umi_cup_in_the_wild"),
         ("dora_parquet", "cadene/wrist_gripper"),
     ],
-)
-@pytest.mark.skip(
-    "Not compatible with our CI since it downloads raw datasets. Run with `DATA_DIR=tests/data python -m pytest --run-skipped tests/test_push_dataset_to_hub.py::test_push_dataset_to_hub_pusht_backward_compatibility`"
 )
 def test_push_dataset_to_hub_pusht_backward_compatibility(tmpdir, raw_format, repo_id):
     _, dataset_id = repo_id.split("/")

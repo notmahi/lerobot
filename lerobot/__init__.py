@@ -27,6 +27,9 @@ Example:
         print(lerobot.available_real_world_datasets)
         print(lerobot.available_policies)
         print(lerobot.available_policies_per_env)
+        print(lerobot.available_robots)
+        print(lerobot.available_cameras)
+        print(lerobot.available_motors)
     ```
 
 When implementing a new dataset loadable with LeRobotDataset follow these steps:
@@ -55,7 +58,6 @@ available_tasks_per_env = {
     ],
     "pusht": ["PushT-v0"],
     "xarm": ["XarmLift-v0"],
-    "dora_aloha_real": ["DoraAloha-v0", "DoraKoch-v0", "DoraReachy2-v0"],
 }
 available_envs = list(available_tasks_per_env.keys())
 
@@ -70,6 +72,8 @@ available_datasets_per_env = {
         "lerobot/aloha_sim_transfer_cube_human_image",
         "lerobot/aloha_sim_transfer_cube_scripted_image",
     ],
+    # TODO(alexander-soare): Add "lerobot/pusht_keypoints". Right now we can't because this is too tightly
+    # coupled with tests.
     "pusht": ["lerobot/pusht", "lerobot/pusht_image"],
     "xarm": [
         "lerobot/xarm_lift_medium",
@@ -80,23 +84,6 @@ available_datasets_per_env = {
         "lerobot/xarm_lift_medium_replay_image",
         "lerobot/xarm_push_medium_image",
         "lerobot/xarm_push_medium_replay_image",
-    ],
-    "dora_aloha_real": [
-        "lerobot/aloha_static_battery",
-        "lerobot/aloha_static_candy",
-        "lerobot/aloha_static_coffee",
-        "lerobot/aloha_static_coffee_new",
-        "lerobot/aloha_static_cups_open",
-        "lerobot/aloha_static_fork_pick_up",
-        "lerobot/aloha_static_pingpong_test",
-        "lerobot/aloha_static_pro_pencil",
-        "lerobot/aloha_static_screw_driver",
-        "lerobot/aloha_static_tape",
-        "lerobot/aloha_static_thread_velcro",
-        "lerobot/aloha_static_towel",
-        "lerobot/aloha_static_vinh_cup",
-        "lerobot/aloha_static_vinh_cup_left",
-        "lerobot/aloha_static_ziploc_slide",
     ],
 }
 
@@ -123,13 +110,64 @@ available_real_world_datasets = [
     "lerobot/aloha_static_vinh_cup_left",
     "lerobot/aloha_static_ziploc_slide",
     "lerobot/umi_cup_in_the_wild",
+    "lerobot/unitreeh1_fold_clothes",
+    "lerobot/unitreeh1_rearrange_objects",
+    "lerobot/unitreeh1_two_robot_greeting",
+    "lerobot/unitreeh1_warehouse",
+    "lerobot/nyu_rot_dataset",
+    "lerobot/utokyo_saytap",
+    "lerobot/imperialcollege_sawyer_wrist_cam",
+    "lerobot/utokyo_xarm_bimanual",
+    "lerobot/tokyo_u_lsmo",
+    "lerobot/utokyo_pr2_opening_fridge",
+    "lerobot/cmu_franka_exploration_dataset",
+    "lerobot/cmu_stretch",
+    "lerobot/asu_table_top",
+    "lerobot/utokyo_pr2_tabletop_manipulation",
+    "lerobot/utokyo_xarm_pick_and_place",
+    "lerobot/ucsd_kitchen_dataset",
+    "lerobot/austin_buds_dataset",
+    "lerobot/dlr_sara_grid_clamp",
+    "lerobot/conq_hose_manipulation",
+    "lerobot/columbia_cairlab_pusht_real",
+    "lerobot/dlr_sara_pour",
+    "lerobot/dlr_edan_shared_control",
+    "lerobot/ucsd_pick_and_place_dataset",
+    "lerobot/berkeley_cable_routing",
+    "lerobot/nyu_franka_play_dataset",
+    "lerobot/austin_sirius_dataset",
+    "lerobot/cmu_play_fusion",
+    "lerobot/berkeley_gnm_sac_son",
+    "lerobot/nyu_door_opening_surprising_effectiveness",
+    "lerobot/berkeley_fanuc_manipulation",
+    "lerobot/jaco_play",
+    "lerobot/viola",
+    "lerobot/kaist_nonprehensile",
+    "lerobot/berkeley_mvp",
+    "lerobot/uiuc_d3field",
+    "lerobot/berkeley_gnm_recon",
+    "lerobot/austin_sailor_dataset",
+    "lerobot/utaustin_mutex",
+    "lerobot/roboturk",
+    "lerobot/stanford_hydra_dataset",
+    "lerobot/berkeley_autolab_ur5",
+    "lerobot/stanford_robocook",
+    "lerobot/toto",
+    "lerobot/fmb",
+    "lerobot/droid_100",
+    "lerobot/berkeley_rpt",
+    "lerobot/stanford_kuka_multimodal_dataset",
+    "lerobot/iamlab_cmu_pickup_insert",
+    "lerobot/taco_play",
+    "lerobot/berkeley_gnm_cory_hall",
+    "lerobot/usc_cloth_sim",
 ]
 
-available_datasets = list(
-    itertools.chain(*available_datasets_per_env.values(), available_real_world_datasets)
+available_datasets = sorted(
+    set(itertools.chain(*available_datasets_per_env.values(), available_real_world_datasets))
 )
 
-# lists all available policies from `lerobot/common/policies` by their class attribute: `name`.
+# lists all available policies from `lerobot/common/policies`
 available_policies = [
     "act",
     "diffusion",
@@ -137,12 +175,34 @@ available_policies = [
     "vqbet",
 ]
 
+# lists all available robots from `lerobot/common/robot_devices/robots`
+available_robots = [
+    "koch",
+    "koch_bimanual",
+    "aloha",
+    "so100",
+    "moss",
+]
+
+# lists all available cameras from `lerobot/common/robot_devices/cameras`
+available_cameras = [
+    "opencv",
+    "intelrealsense",
+]
+
+# lists all available motors from `lerobot/common/robot_devices/motors`
+available_motors = [
+    "dynamixel",
+    "feetech",
+]
+
 # keys and values refer to yaml files
 available_policies_per_env = {
     "aloha": ["act"],
     "pusht": ["diffusion", "vqbet"],
     "xarm": ["tdmpc"],
-    "dora_aloha_real": ["act_real"],
+    "koch_real": ["act_koch_real"],
+    "aloha_real": ["act_aloha_real"],
 }
 
 env_task_pairs = [(env, task) for env, tasks in available_tasks_per_env.items() for task in tasks]

@@ -22,8 +22,22 @@
 
 </div>
 
+<h2 align="center">
+    <p><a href="https://github.com/huggingface/lerobot/blob/main/examples/10_use_so100.md">New robot in town: SO-100</a></p>
+</h2>
+
+<div align="center">
+    <img src="media/so100/leader_follower.webp?raw=true" alt="SO-100 leader and follower arms" title="SO-100 leader and follower arms" width="50%">
+    <p>We just added a new tutorial on how to build a more affordable robot, at the price of $110 per arm!</p>
+    <p>Teach it new skills by showing it a few moves with just a laptop.</p>
+    <p>Then watch your homemade robot act autonomously 🤯</p>
+    <p>Follow the link to the <a href="https://github.com/huggingface/lerobot/blob/main/examples/10_use_so100.md">full tutorial for SO-100</a>.</p>
+</div>
+
+<br/>
+
 <h3 align="center">
-    <p>State-of-the-art Machine Learning for real-world robotics</p>
+    <p>LeRobot: State-of-the-art AI for real-world robotics</p>
 </h3>
 
 ---
@@ -41,9 +55,9 @@
 
 <table>
   <tr>
-    <td><img src="http://remicadene.com/assets/gif/aloha_act.gif" width="100%" alt="ACT policy on ALOHA env"/></td>
-    <td><img src="http://remicadene.com/assets/gif/simxarm_tdmpc.gif" width="100%" alt="TDMPC policy on SimXArm env"/></td>
-    <td><img src="http://remicadene.com/assets/gif/pusht_diffusion.gif" width="100%" alt="Diffusion policy on PushT env"/></td>
+    <td><img src="media/gym/aloha_act.gif" width="100%" alt="ACT policy on ALOHA env"/></td>
+    <td><img src="media/gym/simxarm_tdmpc.gif" width="100%" alt="TDMPC policy on SimXArm env"/></td>
+    <td><img src="media/gym/pusht_diffusion.gif" width="100%" alt="Diffusion policy on PushT env"/></td>
   </tr>
   <tr>
     <td align="center">ACT policy on ALOHA env</td>
@@ -54,7 +68,7 @@
 
 ### Acknowledgment
 
-- Thanks to Tony Zaho, Zipeng Fu and colleagues for open sourcing ACT policy, ALOHA environments and datasets. Ours are adapted from [ALOHA](https://tonyzhaozh.github.io/aloha) and [Mobile ALOHA](https://mobile-aloha.github.io).
+- Thanks to Tony Zhao, Zipeng Fu and colleagues for open sourcing ACT policy, ALOHA environments and datasets. Ours are adapted from [ALOHA](https://tonyzhaozh.github.io/aloha) and [Mobile ALOHA](https://mobile-aloha.github.io).
 - Thanks to Cheng Chi, Zhenjia Xu and colleagues for open sourcing Diffusion policy, Pusht environment and datasets, as well as UMI datasets. Ours are adapted from [Diffusion Policy](https://diffusion-policy.cs.columbia.edu) and [UMI Gripper](https://umi-gripper.github.io).
 - Thanks to Nicklas Hansen, Yunhai Feng and colleagues for open sourcing TDMPC policy, Simxarm environments and datasets. Ours are adapted from [TDMPC](https://github.com/nicklashansen/tdmpc) and [FOWM](https://www.yunhaifeng.com/FOWM).
 - Thanks to Antonio Loquercio and Ashish Kumar for their early support.
@@ -65,17 +79,19 @@
 
 Download our source code:
 ```bash
-git clone https://github.com/huggingface/lerobot.git && cd lerobot
+git clone https://github.com/huggingface/lerobot.git
+cd lerobot
 ```
 
 Create a virtual environment with Python 3.10 and activate it, e.g. with [`miniconda`](https://docs.anaconda.com/free/miniconda/index.html):
 ```bash
-conda create -y -n lerobot python=3.10 && conda activate lerobot
+conda create -y -n lerobot python=3.10
+conda activate lerobot
 ```
 
 Install 🤗 LeRobot:
 ```bash
-pip install .
+pip install -e .
 ```
 
 > **NOTE:** Depending on your platform, If you encounter any build errors during this step
@@ -89,7 +105,7 @@ For simulations, 🤗 LeRobot comes with gymnasium environments that can be inst
 
 For instance, to install 🤗 LeRobot with aloha and pusht, use:
 ```bash
-pip install ".[aloha, pusht]"
+pip install -e ".[aloha, pusht]"
 ```
 
 To use [Weights and Biases](https://docs.wandb.ai/quickstart) for experiment tracking, log in with
@@ -106,18 +122,17 @@ wandb login
 ├── examples             # contains demonstration examples, start here to learn about LeRobot
 |   └── advanced         # contains even more examples for those who have mastered the basics
 ├── lerobot
-|   ├── configs          # contains hydra yaml files with all options that you can override in the command line
-|   |   ├── default.yaml   # selected by default, it loads pusht environment and diffusion policy
-|   |   ├── env            # various sim environments and their datasets: aloha.yaml, pusht.yaml, xarm.yaml
-|   |   └── policy         # various policies: act.yaml, diffusion.yaml, tdmpc.yaml
+|   ├── configs          # contains config classes with all options that you can override in the command line
 |   ├── common           # contains classes and utilities
 |   |   ├── datasets       # various datasets of human demonstrations: aloha, pusht, xarm
 |   |   ├── envs           # various sim environments: aloha, pusht, xarm
 |   |   ├── policies       # various policies: act, diffusion, tdmpc
+|   |   ├── robot_devices  # various real devices: dynamixel motors, opencv cameras, koch robots
 |   |   └── utils          # various utilities
 |   └── scripts          # contains functions to execute via command line
 |       ├── eval.py                 # load policy and evaluate it on an environment
 |       ├── train.py                # train a policy via imitation learning and/or reinforcement learning
+|       ├── control_robot.py        # teleoperate a real robot, record data, run a policy
 |       ├── push_dataset_to_hub.py  # convert your dataset into LeRobot dataset format and upload it to the Hugging Face hub
 |       └── visualize_dataset.py    # load a dataset and render its demonstrations
 ├── outputs               # contains results of scripts execution: logs, videos, model checkpoints
@@ -126,7 +141,7 @@ wandb login
 
 ### Visualize datasets
 
-Check out [example 1](./examples/1_load_lerobot_dataset.py) that illustrates how to use our dataset class which automatically download data from the Hugging Face hub.
+Check out [example 1](./examples/1_load_lerobot_dataset.py) that illustrates how to use our dataset class which automatically downloads data from the Hugging Face hub.
 
 You can also locally visualize episodes from a dataset on the hub by executing our script from the command line:
 ```bash
@@ -135,10 +150,12 @@ python lerobot/scripts/visualize_dataset.py \
     --episode-index 0
 ```
 
-or from a dataset in a local folder with the root `DATA_DIR` environment variable (in the following case the dataset will be searched for in `./my_local_data_dir/lerobot/pusht`)
+or from a dataset in a local folder with the `root` option and the `--local-files-only` (in the following case the dataset will be searched for in `./my_local_data_dir/lerobot/pusht`)
 ```bash
-DATA_DIR='./my_local_data_dir' python lerobot/scripts/visualize_dataset.py \
+python lerobot/scripts/visualize_dataset.py \
     --repo-id lerobot/pusht \
+    --root ./my_local_data_dir \
+    --local-files-only 1 \
     --episode-index 0
 ```
 
@@ -180,20 +197,20 @@ dataset attributes:
   │  ├ observation.images.cam_high: {'max': tensor with same number of dimensions (e.g. `(c, 1, 1)` for images, `(c,)` for states), etc.}
   │  ...
   ├ info: a dictionary of metadata on the dataset
+  │  ├ codebase_version (str): this is to keep track of the codebase version the dataset was created with
   │  ├ fps (float): frame per second the dataset is recorded/synchronized to
-  │  └ video (bool): indicates if frames are encoded in mp4 video files to save space or stored as png files
+  │  ├ video (bool): indicates if frames are encoded in mp4 video files to save space or stored as png files
+  │  └ encoding (dict): if video, this documents the main options that were used with ffmpeg to encode the videos
   ├ videos_dir (Path): where the mp4 videos or png images are stored/accessed
   └ camera_keys (list of string): the keys to access camera features in the item returned by the dataset (e.g. `["observation.images.cam_high", ...]`)
 ```
 
 A `LeRobotDataset` is serialised using several widespread file formats for each of its parts, namely:
 - hf_dataset stored using Hugging Face datasets library serialization to parquet
-- videos are stored in mp4 format to save space or png files
-- episode_data_index saved using `safetensor` tensor serialization format
-- stats saved using `safetensor` tensor serialization format
-- info are saved using JSON
+- videos are stored in mp4 format to save space
+- metadata are stored in plain json/jsonl files
 
-Dataset can be uploaded/downloaded from the HuggingFace hub seamlessly. To work on a local dataset, you can set the `DATA_DIR` environment variable to your root dataset folder as illustrated in the above section on dataset visualization.
+Dataset can be uploaded/downloaded from the HuggingFace hub seamlessly. To work on a local dataset, you can use the `local_files_only` argument and specify its location with the `root` argument if it's not in the default `~/.cache/huggingface/lerobot` location.
 
 ### Evaluate a pretrained policy
 
@@ -202,80 +219,48 @@ Check out [example 2](./examples/2_evaluate_pretrained_policy.py) that illustrat
 We also provide a more capable script to parallelize the evaluation over multiple environments during the same rollout. Here is an example with a pretrained model hosted on [lerobot/diffusion_pusht](https://huggingface.co/lerobot/diffusion_pusht):
 ```bash
 python lerobot/scripts/eval.py \
-    -p lerobot/diffusion_pusht \
-    eval.n_episodes=10 \
-    eval.batch_size=10
+    --policy.path=lerobot/diffusion_pusht \
+    --env.type=pusht \
+    --eval.batch_size=10 \
+    --eval.n_episodes=10 \
+    --use_amp=false \
+    --device=cuda
 ```
 
 Note: After training your own policy, you can re-evaluate the checkpoints with:
 
 ```bash
-python lerobot/scripts/eval.py -p {OUTPUT_DIR}/checkpoints/last/pretrained_model
+python lerobot/scripts/eval.py --policy.path={OUTPUT_DIR}/checkpoints/last/pretrained_model
 ```
 
 See `python lerobot/scripts/eval.py --help` for more instructions.
 
 ### Train your own policy
 
-Check out [example 3](./examples/3_train_policy.py) that illustrates how to train a model using our core library in python, and [example 4](./examples/4_train_policy_with_script.md) that shows how to use our training script from command line.
+Check out [example 3](./examples/3_train_policy.py) that illustrate how to train a model using our core library in python, and [example 4](./examples/4_train_policy_with_script.md) that shows how to use our training script from command line.
 
-In general, you can use our training script to easily train any policy. Here is an example of training the ACT policy on trajectories collected by humans on the Aloha simulation environment for the insertion task:
+To use wandb for logging training and evaluation curves, make sure you've run `wandb login` as a one-time setup step. Then, when running the training command above, enable WandB in the configuration by adding `--wandb.enable=true`.
 
-```bash
-python lerobot/scripts/train.py \
-    policy=act \
-    env=aloha \
-    env.task=AlohaInsertion-v0 \
-    dataset_repo_id=lerobot/aloha_sim_insertion_human \
-```
-
-The experiment directory is automatically generated and will show up in yellow in your terminal. It looks like `outputs/train/2024-05-05/20-21-12_aloha_act_default`. You can manually specify an experiment directory by adding this argument to the `train.py` python command:
-```bash
-    hydra.run.dir=your/new/experiment/dir
-```
-
-In the experiment directory there will be a folder called `checkpoints` which will have the following structure:
-
-```bash
-checkpoints
-├── 000250  # checkpoint_dir for training step 250
-│   ├── pretrained_model  # Hugging Face pretrained model dir
-│   │   ├── config.json  # Hugging Face pretrained model config
-│   │   ├── config.yaml  # consolidated Hydra config
-│   │   ├── model.safetensors  # model weights
-│   │   └── README.md  # Hugging Face model card
-│   └── training_state.pth  # optimizer/scheduler/rng state and training step
-```
-
-To use wandb for logging training and evaluation curves, make sure you've run `wandb login` as a one-time setup step. Then, when running the training command above, enable WandB in the configuration by adding:
-
-```bash
-    wandb.enable=true
-```
-
-A link to the wandb logs for the run will also show up in yellow in your terminal. Here is an example of what they look like in your browser:
+A link to the wandb logs for the run will also show up in yellow in your terminal. Here is an example of what they look like in your browser. Please also check [here](./examples/4_train_policy_with_script.md#typical-logs-and-metrics) for the explanation of some commonly used metrics in logs.
 
 ![](media/wandb.png)
 
-Note: For efficiency, during training every checkpoint is evaluated on a low number of episodes. You may use `eval.n_episodes=500` to evaluate on more episodes than the default. Or, after training, you may want to re-evaluate your best checkpoints on more episodes or change the evaluation settings. See `python lerobot/scripts/eval.py --help` for more instructions.
+Note: For efficiency, during training every checkpoint is evaluated on a low number of episodes. You may use `--eval.n_episodes=500` to evaluate on more episodes than the default. Or, after training, you may want to re-evaluate your best checkpoints on more episodes or change the evaluation settings. See `python lerobot/scripts/eval.py --help` for more instructions.
 
 #### Reproduce state-of-the-art (SOTA)
 
-We have organized our configuration files (found under [`lerobot/configs`](./lerobot/configs)) such that they reproduce SOTA results from a given model variant in their respective original works. Simply running:
-
+We provide some pretrained policies on our [hub page](https://huggingface.co/lerobot) that can achieve state-of-the-art performances.
+You can reproduce their training by loading the config from their run. Simply running:
 ```bash
-python lerobot/scripts/train.py policy=diffusion env=pusht
+python lerobot/scripts/train.py --config_path=lerobot/diffusion_pusht
 ```
-
 reproduces SOTA results for Diffusion Policy on the PushT task.
-
-Pretrained policies, along with reproduction details, can be found under the "Models" section of https://huggingface.co/lerobot.
 
 ## Contribute
 
 If you would like to contribute to 🤗 LeRobot, please check out our [contribution guide](https://github.com/huggingface/lerobot/blob/main/CONTRIBUTING.md).
 
-### Add a new dataset
+<!-- ### Add a new dataset
 
 To add a dataset to the hub, you need to login using a write-access token, which can be generated from the [Hugging Face settings](https://huggingface.co/settings/tokens):
 ```bash
@@ -293,7 +278,7 @@ python lerobot/scripts/push_dataset_to_hub.py \
 
 See `python lerobot/scripts/push_dataset_to_hub.py --help` for more instructions.
 
-If your dataset format is not supported, implement your own in `lerobot/common/datasets/push_dataset_to_hub/${raw_format}_format.py` by copying examples like [pusht_zarr](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/pusht_zarr_format.py), [umi_zarr](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/umi_zarr_format.py), [aloha_hdf5](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/aloha_hdf5_format.py), or [xarm_pkl](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/xarm_pkl_format.py).
+If your dataset format is not supported, implement your own in `lerobot/common/datasets/push_dataset_to_hub/${raw_format}_format.py` by copying examples like [pusht_zarr](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/pusht_zarr_format.py), [umi_zarr](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/umi_zarr_format.py), [aloha_hdf5](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/aloha_hdf5_format.py), or [xarm_pkl](https://github.com/huggingface/lerobot/blob/main/lerobot/common/datasets/push_dataset_to_hub/xarm_pkl_format.py). -->
 
 
 ### Add a pretrained policy
@@ -303,7 +288,7 @@ Once you have trained a policy you may upload it to the Hugging Face hub using a
 You first need to find the checkpoint folder located inside your experiment directory (e.g. `outputs/train/2024-05-05/20-21-12_aloha_act_default/checkpoints/002500`). Within that there is a `pretrained_model` directory which should contain:
 - `config.json`: A serialized version of the policy configuration (following the policy's dataclass config).
 - `model.safetensors`: A set of `torch.nn.Module` parameters, saved in [Hugging Face Safetensors](https://huggingface.co/docs/safetensors/index) format.
-- `config.yaml`: A consolidated Hydra training configuration containing the policy, environment, and dataset configs. The policy configuration should match `config.json` exactly. The environment config is useful for anyone who wants to evaluate your policy. The dataset config just serves as a paper trail for reproducibility.
+- `train_config.json`: A consolidated configuration containing all parameter userd for training. The policy configuration should match `config.json` exactly. Thisis useful for anyone who wants to evaluate your policy or for reproducibility.
 
 To upload these to the hub, run the following:
 ```bash

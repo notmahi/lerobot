@@ -31,7 +31,6 @@ from pathlib import Path
 
 from safetensors.torch import save_file
 
-from lerobot import available_datasets
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 
 
@@ -44,6 +43,7 @@ def save_dataset_to_safetensors(output_dir, repo_id="lerobot/pusht"):
     repo_dir.mkdir(parents=True, exist_ok=True)
     dataset = LeRobotDataset(
         repo_id=repo_id,
+        episodes=[0],
     )
 
     # save 2 first frames of first episode
@@ -81,5 +81,11 @@ def save_dataset_to_safetensors(output_dir, repo_id="lerobot/pusht"):
 
 
 if __name__ == "__main__":
-    for dataset in available_datasets:
+    for dataset in [
+        "lerobot/pusht",
+        "lerobot/aloha_sim_insertion_human",
+        "lerobot/xarm_lift_medium",
+        "lerobot/nyu_franka_play_dataset",
+        "lerobot/cmu_stretch",
+    ]:
         save_dataset_to_safetensors("tests/data/save_dataset_to_safetensors", repo_id=dataset)
